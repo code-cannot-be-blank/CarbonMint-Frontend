@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import Button from './Button.jsx';
 import LiveRegion from './LiveRegion.jsx';
-import { formatCurrency, formatTonnes } from '../utils/format.js';
+import { formatCurrency, formatTonnes, roundTo } from '../utils/format.js';
 import { validateBuyQuantity, validateSlippageTolerance } from '../utils/validate.js';
 import { useWallet } from '../hooks/useWallet.js';
 import './BuyForm.css';
@@ -47,7 +47,7 @@ export default function BuyForm({ batch, onBuy, submitting }) {
   const total = useMemo(() => {
     const q = Number(quantity);
     if (Number.isNaN(q) || q <= 0) return 0;
-    return q * batch.pricePerTonne;
+    return roundTo(q * batch.pricePerTonne);
   }, [quantity, batch.pricePerTonne]);
 
   /** Maximum acceptable total cost given the slippage tolerance. */
@@ -55,7 +55,7 @@ export default function BuyForm({ batch, onBuy, submitting }) {
     const q = Number(quantity);
     const s = Number(slippage);
     if (Number.isNaN(q) || q <= 0 || Number.isNaN(s) || s <= 0) return null;
-    return q * batch.pricePerTonne * (1 + s / 100);
+    return roundTo(q * batch.pricePerTonne * (1 + s / 100));
   }, [quantity, slippage, batch.pricePerTonne]);
 
   /** True when slippage > 5 % — show a gentle warning. */
