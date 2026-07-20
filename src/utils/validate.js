@@ -3,6 +3,18 @@
  */
 
 /**
+ * Maximum quantity (in whole tonnes) accepted by the buy and retire flows.
+ *
+ * JavaScript integers beyond Number.MAX_SAFE_INTEGER (2^53 - 1) cannot be
+ * represented exactly, so arithmetic on them silently produces wrong results.
+ * We cap well below that limit: 1 000 000 tonnes is far larger than any
+ * single carbon-credit batch in the real world and keeps all downstream
+ * multiplication results within the safe integer range even at the highest
+ * price in the mock catalogue (~185 USDC/tonne).
+ */
+export const MAX_SAFE_QUANTITY = 1_000_000;
+
+/**
  * Validate a buy request against an available listing.
  * @param {number} quantity - tonnes the user wants to buy
  * @param {number} available - tonnes available in the batch
@@ -21,6 +33,12 @@ export function validateBuyQuantity(quantity, available) {
   }
   if (!Number.isInteger(q)) {
     return { valid: false, error: 'Quantity must be a whole number of tonnes.' };
+  }
+  if (!Number.isSafeInteger(q) || q > MAX_SAFE_QUANTITY) {
+    return {
+      valid: false,
+      error: `Quantity cannot exceed ${MAX_SAFE_QUANTITY.toLocaleString('en-US')} tonnes.`,
+    };
   }
   if (q > available) {
     return { valid: false, error: `Only ${available} tonnes available.` };
@@ -47,6 +65,12 @@ export function validateRetireQuantity(quantity, owned) {
   }
   if (!Number.isInteger(q)) {
     return { valid: false, error: 'Amount must be a whole number of tonnes.' };
+  }
+  if (!Number.isSafeInteger(q) || q > MAX_SAFE_QUANTITY) {
+    return {
+      valid: false,
+      error: `Amount cannot exceed ${MAX_SAFE_QUANTITY.toLocaleString('en-US')} tonnes.`,
+    };
   }
   if (q > owned) {
     return { valid: false, error: `You only hold ${owned} tonnes.` };

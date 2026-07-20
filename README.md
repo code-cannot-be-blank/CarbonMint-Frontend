@@ -109,6 +109,78 @@ The slippage fieldset follows the same patterns as the rest of the form:
 - Validation errors and the high-slippage warning use `role="alert"` /
   `aria-live="polite"` so screen readers announce them without interrupting.
 
+## Precision guardrails
+
+JavaScript's IEEE-754 double-precision arithmetic introduces two classes of
+silent error that matter in financial UIs:
+
+1. **Floating-point drift** — multiplying a price by a slippage factor produces
+   a value like `185.92499999999998` instead of `185.925`. Displayed or compared
+   as-is, this can confuse users and mis-fire slippage guards.
+2. **Unsafe integer coercion** — integers beyond `Number.MAX_SAFE_INTEGER`
+   (2⁵³ − 1) cannot be represented exactly. A user typing `9007199254740993`
+   into the quantity field silently becomes `9007199254740992`, making
+   downstream arithmetic wrong without any error being raised.
+
+### How it works
+
+**`roundTo(value, decimals = 10)` — `src/utils/format.js`**
+
+Uses the multiply-round-divide technique to eliminate binary drift from
+multiplication chains before the result is displayed or compared:
+
+```js
+roundTo(185 * 1.005)       // 185.925  (raw: 185.92499999999998)
+roundTo(100 * 9.75 * 1.005) // 979.875  (raw: 979.8749999999999)
+```
+
+Applied in:
+- `BuyForm` — `total` and `maxTotal` display values.
+- `submitBuy` — receipt `total` and `maxAcceptablePrice` before the slippage
+  guard comparison.
+
+**`MAX_SAFE_QUANTITY = 1 000 000` — `src/utils/validate.js`**
+
+Both `validateBuyQuantity` and `validateRetireQuantity` now reject any quantity
+that fails `Number.isSafeInteger(q)` or exceeds `MAX_SAFE_QUANTITY`. This is
+stricter than `Number.isInteger`, which returns `true` for `2^53` even though
+that value cannot be represented exactly.
+
+```js
+// Old check (insufficient)
+Number.isInteger(2 ** 53)    // true  ← silent precision loss allowed through
+
+// New check
+Number.isSafeInteger(2 ** 53) // false ← correctly rejected
+```
+
+The `1 000 000` cap is well above any real-world carbon-credit batch size and
+keeps all downstream multiplication results within the safe integer range even
+at the highest price in the catalogue.
+
+### Where precision loss is guarded
+
+| Location | Threat | Mitigation |
+|---|---|---|
+| `BuyForm` — `total` display | fp drift in `q * price` | `roundTo` |
+| `BuyForm` — `maxTotal` display | fp drift in `q * price * (1 + s/100)` | `roundTo` |
+| `submitBuy` — receipt `total` | fp drift in `q * price` | `roundTo` |
+| `submitBuy` — slippage guard | fp drift in `baseline * (1 + s/100)` | `roundTo` |
+| `validateBuyQuantity` | unsafe integer quantity input | `Number.isSafeInteger` + `MAX_SAFE_QUANTITY` |
+| `validateRetireQuantity` | unsafe integer quantity input | `Number.isSafeInteger` + `MAX_SAFE_QUANTITY` |
+
+### Testing
+
+Precision-loss tests live in `src/test/precision.test.js` and cover:
+
+- `roundTo` — drift elimination for known bad values, custom decimal places,
+  edge cases (zero, negative).
+- `validateBuyQuantity` / `validateRetireQuantity` — boundary at
+  `MAX_SAFE_QUANTITY`, rejection of `Number.MAX_SAFE_INTEGER` and `2^53`,
+  unchanged behaviour for all other validation rules.
+- `submitBuy` — receipt total is exact, `maxAcceptablePrice` is drift-free, and
+  the slippage guard does not spuriously reject a valid order.
+
 ## Project structure
 
 ```

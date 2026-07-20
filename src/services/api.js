@@ -9,6 +9,7 @@
 import { BATCHES } from './market.js';
 import { getProjectById } from '../constants/projects.js';
 import { delay } from '../utils/delay.js';
+import { roundTo } from '../utils/format.js';
 
 const LATENCY_MS = 350;
 
@@ -86,8 +87,10 @@ export async function submitBuy({
 
   // Enforce slippage tolerance: reject if the current fill price has moved
   // beyond the user's limit relative to the price they saw when ordering.
+  // roundTo eliminates IEEE-754 drift in the multiplication, e.g.
+  // 185 * 1.005 = 185.92499999999998 without rounding.
   const baseline = referencePrice != null ? referencePrice : batch.pricePerTonne;
-  const maxAcceptablePrice = baseline * (1 + slippageTolerance / 100);
+  const maxAcceptablePrice = roundTo(baseline * (1 + slippageTolerance / 100));
   if (batch.pricePerTonne > maxAcceptablePrice) {
     throw new Error(
       `Transaction rejected: price of ${batch.pricePerTonne} USDC/tonne exceeds your slippage limit of ${maxAcceptablePrice.toFixed(4)} USDC/tonne.`
@@ -100,7 +103,7 @@ export async function submitBuy({
     batchId,
     quantity,
     buyer,
-    total: quantity * batch.pricePerTonne,
+    total: roundTo(quantity * batch.pricePerTonne),
     slippageTolerance,
     timestamp: new Date().toISOString(),
   };

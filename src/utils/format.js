@@ -3,6 +3,28 @@
  */
 
 /**
+ * Round a floating-point number to `decimals` significant decimal places,
+ * eliminating IEEE-754 binary drift that accumulates in multiplication chains
+ * such as `quantity * pricePerTonne * (1 + slippage / 100)`.
+ *
+ * Uses the "multiply-round-divide" technique which is accurate for the
+ * decimal magnitudes found in this application (quantities up to ~10 M,
+ * prices up to ~1 000 USDC/tonne).
+ *
+ * @param {number} value
+ * @param {number} [decimals=10]
+ * @returns {number}
+ *
+ * @example
+ * roundTo(185 * 1.005)     // 185.925  (without: 185.92499999999998)
+ * roundTo(9.75 * 1.001)    // 9.75975  (without: 9.759749999999999)
+ */
+export function roundTo(value, decimals = 10) {
+  const factor = 10 ** decimals;
+  return Math.round(Number(value) * factor) / factor;
+}
+
+/**
  * Format a number as USDC currency.
  * @param {number} value
  * @returns {string}
