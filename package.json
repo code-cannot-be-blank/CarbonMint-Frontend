@@ -5,8 +5,8 @@
   "type": "module",
   "description": "CarbonMint - a Stellar/Soroban tokenized carbon-credit marketplace frontend",
   "scripts": {
-    "build": "vite build",
-    "dev": "vite",
+    "build": "node api.js && vite build",
+    "dev": "node api.js && vite",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
