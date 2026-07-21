@@ -1,0 +1,18 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "feat/scroll-to-top-button",
+    "main",
+    "origin"
+  ],
+  "parent": {
+    "feat/scroll-to-top-button": "main",
+    "main": null,
+    "origin": "main"
+  },
+  "order": [
+    "main",
+    "feat/scroll-to-top-button",
+    "origin"
+  ]
+}
