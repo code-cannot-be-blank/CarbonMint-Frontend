@@ -3,6 +3,7 @@ import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
 import GlobalShortcuts from './components/GlobalShortcuts.jsx';
 import ScrollToTop from './components/ScrollToTop.jsx';
+import ScrollToTopButton from './components/ScrollToTopButton.jsx';
 import Home from './pages/Home.jsx';
 import Marketplace from './pages/Marketplace.jsx';
 import BatchDetail from './pages/BatchDetail.jsx';
@@ -19,6 +20,7 @@ export default function App() {
     <>
       <GlobalShortcuts />
       <ScrollToTop />
+      <ScrollToTopButton />
       <Navbar />
       <main className="app-main">
         <Routes>
